@@ -55,7 +55,7 @@ namespace Heimdall.App.Games
         internal int NativeRefreshPasses { get; private set; }
 
         /// <summary>Detaches mounted notifications and releases the browser when its owning workspace closes.</summary>
-        public void Dispose() { if (_disposed) return; _disposed = true; _unmounted = true; Detach(); if (_browser is not null) _browser.ProjectionChanged -= BrowserProjectionChanged; _browser?.Dispose(); _browser = null; DisposeNative(); GC.SuppressFinalize(this); }
+        public void Dispose() { if (_disposed) return; _disposed = true; _unmounted = true; Detach(); if (_browser is not null) _browser.ProjectionChanged -= BrowserProjectionChanged; _browser?.Dispose(); _browser = null; _editingRole?.Dispose(); _editingRole = null; DisposeNative(); GC.SuppressFinalize(this); }
 
         /// <summary>Identifies the requested controller-panel reservation before the inspector may grow.</summary>
         public static readonly DependencyProperty ControllerReserveHeightProperty = DependencyProperty.Register(
@@ -98,8 +98,6 @@ namespace Heimdall.App.Games
         protected internal WorkspaceAssignmentWorkflow AssignmentWorkflow => _context?.AssignmentWorkflow ?? throw new InvalidOperationException("Bind a workspace context before assigning.");
         /// <summary>Reads fresh native editing gates and scope.</summary>
         protected abstract WorkspaceAssignmentContext CaptureAssignmentContext();
-        /// <summary>Captures native draft identity for review/change checks.</summary>
-        protected abstract string CaptureAssignmentSnapshot();
         /// <summary>Validates native write access and persists through the workspace owner.</summary>
         protected abstract Task SaveAssignmentsCoreAsync();
         /// <summary>Restores the native saved baseline through the workspace owner.</summary>
@@ -177,15 +175,16 @@ namespace Heimdall.App.Games
         protected bool AssignmentRefreshRunning => _refreshing;
         /// <summary>Combines native gates with an in-progress assignment save.</summary>
         protected WorkspaceAssignmentContext CurrentAssignmentContext => CaptureAssignmentContext();
-        /// <summary>Runs a native mutation against fresh common gates and draft/scope checks.</summary>
-        protected DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null)
-        {
-            // Native sessions notify their context before the window rebuilds its rows. Publish only after all
-            // native change handlers finish, so editors cannot reload the previous binding during the mutation.
-            using var refresh = _context?.DeferRefresh();
-            return AssignmentWorkflow.Execute(new WorkspaceAssignmentHost(() => CurrentAssignmentContext, () => _context?.CaptureSnapshot() ?? CaptureAssignmentSnapshot()),
-                new WorkspaceAssignmentOperation(target, review ?? (() => new(true, true, "")), apply));
-        }
+        private IGameAssignmentEditing? _editingRole;
+        /// <summary>Gets the editing role bound by the native composition root.</summary>
+        internal IGameAssignmentEditing Editing => _editingRole ?? throw new InvalidOperationException("Bind assignment editing before executing.");
+        /// <summary>Shares native editing through the UI-free role contract.</summary>
+        internal void BindEditing(IGameAssignmentEditing editing) => _editingRole = editing;
+        /// <summary>Builds a typed operation for native controls with a void draft write.</summary>
+        internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review,
+            Action apply, WorkspaceAssignmentAction action = WorkspaceAssignmentAction.Apply) =>
+            Editing.Execute(action, new WorkspaceAssignmentOperation(new(CurrentAssignmentContext.Scope, command, input, alternative),
+                review, () => { apply(); return new(DraftOutcome.Applied, ""); }));
         /// <summary>Reports success only after the native save completes; all failures preserve their explanation.</summary>
         protected internal async Task<bool> SaveAssignmentsAsync()
         {

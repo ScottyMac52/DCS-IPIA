@@ -11,6 +11,8 @@ namespace Heimdall.Application.Games
         Inspect,
         StartInput,
         StopInput,
-        Fit
+        Fit,
+        EditLabel,
+        Undo
     }
 }

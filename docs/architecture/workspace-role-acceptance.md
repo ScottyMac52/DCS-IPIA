@@ -55,6 +55,20 @@ Expose fixture operations only through role interfaces or explicitly typed nativ
 | E04 | Apply/review throws or reenters | Existing workflow semantics preserved: exception and early reentry do not emit Completed; guard released, retry works; no doubled forwarded completion |
 | E05 | Action requested after menu opened but before new busy/access state | Per-action supported/ready/gate recalculated at dispatch; unsupported hidden or explained per common policy; no stale enabled bypass |
 
+### PR5 editing call paths
+
+| Entry | Shared execution | Native ownership |
+| --- | --- | --- |
+| DCS toolbar, palette drop, callout move/copy, undo and inspector | `DcsAssignmentEditing` captures the target and executes through the context workflow. Conflict prompts run in review. Drag and training-axis dialogs retain their original target and draft identity. | Draft slot validation, occupied-control choices, reserved inputs, tuning and undo history stay in DCS. |
+| DCS personal labels | Inline, callout, search/replace and authored-label import submit through the same editing role. A reviewed label batch publishes once. | Label resolution and draft storage stay in DCS. Layer clearing and generic control renaming use the existing structural transaction. |
+| Elite toolbar, drawing drop/clear and axis dialog | `EliteAssignmentEditing` and the drawing's bound role share the same execution and completion. | Native slots, modifier combinations, export comparison and tuning stay in Elite. |
+| Squadrons toolbar, explicit records, drawing and reviewed clears | `SquadronsAssignmentEditing` sends the captured native operation through the existing workflow. | Verified controller inputs, paired direction reversal, native record addresses and controller change previews stay in Squadrons. |
+| War Thunder native editor, drawing drop, clear alternatives and axis dialog | `WarThunderAssignmentEditing` runs native edits and compound tuning through the same gates. A clear alternative retains the scope and content version from menu creation. | BLK occurrence addresses, native capabilities and parameter validation stay in War Thunder. |
+
+The role rechecks selection, native capability and workspace gates after review. The existing workflow compares native draft fingerprints and admits one apply. Its completion also drives the role's completion while the workflow still guards reentry. No additional workflow or operation lock is created.
+
+Use `AssignmentEditingRoleTests` for shared gate, reentry and completion counts, `DraftAssignmentServiceTests` for non-mutating conflict previews, and the full Windows smoke suite for the four composed editors. Profile captures now record `assignment.execute` around the editing role. Compare editing captures on the same fixtures alongside the warm search, controller switch and command-selection runs from #374. The accepted exception in #374 applies to Elite warm controller switching only.
+
 ## Drawing cases (PR 6)
 
 | ID | Arrange / action | Required observations |

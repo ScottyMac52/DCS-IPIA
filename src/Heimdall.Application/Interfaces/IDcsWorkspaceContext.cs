@@ -10,6 +10,8 @@ namespace Heimdall.Application.Interfaces
         IReadOnlyDictionary<string, string> Labels { get; }
         /// <summary>Sets or clears a personal assignment label and refreshes workspace state.</summary>
         void SetLabel(string key, string? value);
+        /// <summary>Stages a reviewed batch of personal labels with one workspace notification.</summary>
+        void SetLabels(IReadOnlyList<KeyValuePair<string, string?>> labels);
         /// <summary>Gets the assignment draft service for pending edits.</summary>
         DcsDraftAssignmentService? Draft { get; }
 

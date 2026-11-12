@@ -386,6 +386,29 @@ namespace Heimdall.Tests
             inner.Dispose();
             Assert.Equal(DraftOutcome.Applied, service.Remove(source).Outcome);
         }
+        /// <summary>Occupied-control preview leaves the native draft and undo history unchanged.</summary>
+        [Fact]
+        public void Reviewed_assignment_and_move_do_not_stage_the_candidate()
+        {
+            var (service, source, target, _, first, _) = Fixture();
+            var before = service.Snapshot;
+            var notifications = 0;
+            service.Changed += (_, _) => notifications++;
+
+            Assert.Equal(DraftOutcome.ConfirmationRequired, service.ReviewAssign(target, first, null).Outcome);
+            Assert.Equal(DraftOutcome.Applied, service.ReviewAssign(target, first, DraftConflictChoice.Replace).Outcome);
+            Assert.Equal(DraftOutcome.ConfirmationRequired, service.ReviewTransfer(source, target, false, null).Outcome);
+            Assert.Equal(DraftOutcome.Applied, service.ReviewTransfer(source, target, false, DraftConflictChoice.Swap).Outcome);
+            Assert.Equal(DraftOutcome.Blocked, service.ReviewTransfer(source, target, true, DraftConflictChoice.Swap).Outcome);
+            Assert.Equal(before, service.Snapshot);
+            Assert.Empty(service.History);
+            Assert.False(service.HasChanges);
+            Assert.Equal(0, notifications);
+
+            Assert.Equal(DraftOutcome.Applied, service.Move(source, target, OccupiedDestinationBehavior.Ask, DraftConflictChoice.Swap).Outcome);
+            Assert.Single(service.History);
+            Assert.Equal(1, notifications);
+        }
         #endregion END Public
         #region BEGIN private helpers
         private static (DcsDraftAssignmentService Service, DcsDraftAssignmentSlot Source, DcsDraftAssignmentSlot Target,

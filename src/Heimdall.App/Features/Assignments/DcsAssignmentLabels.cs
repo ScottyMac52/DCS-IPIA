@@ -1,4 +1,5 @@
 using Heimdall.Application;
+using Heimdall.Application.Games;
 using Heimdall.Dcs;
 using System.IO;
 using System.Text.Json;
@@ -15,17 +16,18 @@ namespace Heimdall.App.Features.Assignments
         TextBox LabelEditor,
         TextBox GenericControlName,
         TextBlock SelectedCallout,
-        Action refresh)
+        Action refresh,
+        Func<string, Func<GameAssignmentReview>, Action, DraftResult> editLabels)
     {
         #region BEGIN Public
         internal void ChangeCalloutLabel(HardwareGraphicControl control)
         {
-            if (state.Context?.Working is null || state.Diagram is not UiLayerDiagram diagram)
+            if (state.Context is not { Working: { } workspace } context || state.Diagram is not UiLayerDiagram diagram)
                 return;
 
             var chord = state.Chord;
             var slot = DcsKneeboardDraftProjection.SlotForControl(
-                state.Context.Working, diagram, control, state.Layer, chord);
+                workspace, diagram, control, state.Layer, chord);
             if (slot is null) return;
 
             var assignment = (state.Context.Draft?.Snapshot ?? state.Context.Working.Assignments)
@@ -61,9 +63,12 @@ namespace Heimdall.App.Features.Assignments
                 editor.Focus();
                 editor.SelectAll();
             };
-            if (dialog.ShowDialog() != true) return;
-
-            state.Context.SetLabel(slot.Key, string.IsNullOrWhiteSpace(editor.Text) ? null : editor.Text);
+            var result = editLabels(slot.Key, () =>
+            {
+                if (state.ReservationError(diagram, control.InputKey) is { } blocked) return new(false, false, blocked);
+                return dialog.ShowDialog() == true ? new(true, true, "") : new(false, false, "Label change canceled.");
+            }, () => context.SetLabel(slot.Key, editor.Text));
+            if (result.Outcome != DraftOutcome.Applied) return;
             state.UpdatingLabel = true;
             try
             {
@@ -81,7 +86,7 @@ namespace Heimdall.App.Features.Assignments
 
         internal void SearchReplaceLabelsClicked(object sender, RoutedEventArgs e)
         {
-            if (state.Context?.Working is null || state.Diagram is not UiLayerDiagram diagram)
+            if (state.Context is not { Working: { } workspace } context || state.Diagram is not UiLayerDiagram diagram)
             {
                 SelectedCallout.Text = "Select a device first.";
                 return;
@@ -89,12 +94,12 @@ namespace Heimdall.App.Features.Assignments
 
             var chord = state.Chord;
             var layer = state.Layer;
-            var snapshot = state.Context.Draft?.Snapshot ?? state.Context.Working.Assignments;
+            var snapshot = context.Draft?.Snapshot ?? workspace.Assignments;
 
             var candidates = new List<(HardwareGraphicControl Control, DcsDraftAssignmentSlot Slot, string Current)>();
             foreach (var control in diagram.Controls)
             {
-                var slot = DcsKneeboardDraftProjection.SlotForControl(state.Context.Working, diagram, control, layer, chord);
+                var slot = DcsKneeboardDraftProjection.SlotForControl(workspace, diagram, control, layer, chord);
                 if (slot is null) continue;
                 var assignment = snapshot.FirstOrDefault(x =>
                     DcsInputKey.PhysicalSlotKey(x.Slot) == DcsInputKey.PhysicalSlotKey(slot));
@@ -220,6 +225,7 @@ namespace Heimdall.App.Features.Assignments
                 MinWidth = 420
             };
 
+            KeyValuePair<string, string?>[]? updates = null;
             apply.Click += (_, _) =>
             {
                 RefreshPreview();
@@ -227,16 +233,19 @@ namespace Heimdall.App.Features.Assignments
                 {
                     return;
                 }
-                foreach (var (slot, _, next) in matches)
-                    state.Context.SetLabel(slot.Key, string.IsNullOrWhiteSpace(next) ? null : next);
+                updates = matches.Select(match => new KeyValuePair<string, string?>(match.Slot.Key, match.New)).ToArray();
                 dialog.DialogResult = true;
             };
 
             dialog.Loaded += (_, _) => { findBox.Focus(); RefreshPreview(); };
-            if (dialog.ShowDialog() != true) return;
-
-            refresh();
-            SelectedCallout.Text = "Labels updated.";
+            var result = editLabels("", () => dialog.ShowDialog() == true
+                    ? new(true, updates is { Length: > 0 }, "") : new(false, false, "Label change canceled."),
+                () => context.SetLabels(updates!));
+            if (result.Outcome == DraftOutcome.Applied)
+            {
+                refresh();
+                SelectedCallout.Text = "Labels updated.";
+            }
         }
 
         internal void LabelChanged(object sender, TextChangedEventArgs e)
@@ -249,36 +258,36 @@ namespace Heimdall.App.Features.Assignments
             var slot = DcsKneeboardDraftProjection.SlotForControl(state.Context.Working, diagram, state.Selected, layer, chord);
             if (slot is null) return;
 
-            state.Context.SetLabel(slot.Key, LabelEditor.Text);
-            refresh();
+            var context = state.Context;
+            var text = LabelEditor.Text;
+            var result = editLabels(slot.Key, () => state.ReservationError(diagram, slot.InputKey) is { } blocked
+                ? new(false, false, blocked) : new(true, true, ""), () => context.SetLabel(slot.Key, text));
+            if (result.Outcome == DraftOutcome.Applied) refresh();
         }
         internal void LoadAuthoredLabelsClicked(object sender, RoutedEventArgs e)
         {
-            if (state.Context?.Working is null) return;
+            if (state.Context is not { Working: { } workspace } context) return;
 
             var picker = new ThemeBrowseDialog
             {
                 Title = "Select a module config/kneeboard.json file",
                 Filter = "kneeboard.json|kneeboard.json|JSON files|*.json"
             };
-            if (picker.ShowDialog(Window.GetWindow(owner)) != true) return;
-
+            KeyValuePair<string, string?>[]? updates = null;
             try
             {
-                using var document = JsonDocument.Parse(File.ReadAllText(picker.FileName));
-                var metadata = new Dictionary<string, JsonElement> { ["config/kneeboard.json"] = document.RootElement };
-                var imported = DcsKneeboardLabelImporter.Import(metadata, state.Context.Working.Configuration);
-                if (imported.Count == 0)
+                var result = editLabels("", () =>
                 {
-                    SelectedCallout.Text = "No authored labels matched this module.";
-                    return;
-                }
-
-                foreach (var pair in imported)
-                    state.Context.SetLabel(pair.Key, pair.Value);
-
+                    if (picker.ShowDialog(Window.GetWindow(owner)) != true) return new(false, false, "Label import canceled.");
+                    using var document = JsonDocument.Parse(File.ReadAllText(picker.FileName));
+                    var metadata = new Dictionary<string, JsonElement> { ["config/kneeboard.json"] = document.RootElement };
+                    updates = DcsKneeboardLabelImporter.Import(metadata, workspace.Configuration)
+                        .Select(pair => new KeyValuePair<string, string?>(pair.Key, pair.Value)).ToArray();
+                    return updates.Length > 0 ? new(true, true, "") : new(false, false, "No authored labels matched this module.");
+                }, () => context.SetLabels(updates!));
+                if (result.Outcome != DraftOutcome.Applied) return;
                 refresh();
-                SelectedCallout.Text = $"{imported.Count} authored labels staged. Save to keep them, or Discard draft.";
+                SelectedCallout.Text = $"{updates!.Length} authored labels staged. Save to keep them, or Discard draft.";
             }
             catch (Exception ex)
             {

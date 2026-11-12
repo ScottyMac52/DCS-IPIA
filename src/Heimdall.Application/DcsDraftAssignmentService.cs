@@ -101,19 +101,16 @@ namespace Heimdall.Application
         /// <returns>Applied changes or a reason no edit was made.</returns>
         public DraftResult Assign(DcsDraftAssignmentSlot destination, DcsDraftCommand command,
                                   OccupiedDestinationBehavior behavior, DraftConflictChoice? choice = null)
-        {
-            if (_editSuspensions > 0) return Block(SuspendedMessage);
-            if (!Validate(destination, command, out var reason))
-                return Block(reason);
-            _current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var existing);
-            var incoming = new DcsDraftAssignment(destination, command) { Filter = existing?.Filter };
-            if (existing == incoming)
-                return Unchanged();
-            var conflict = Conflict(existing, behavior, choice, false);
-            if (conflict is not null)
-                return conflict;
-            return Commit("Assign", [new(destination, existing, incoming)]);
-        }
+            => AssignCore(destination, command, behavior, choice, reviewOnly: false);
+
+        /// <summary>Checks an assignment and its occupied-destination decision without changing the draft.</summary>
+        public DraftResult ReviewAssign(DcsDraftAssignmentSlot destination, DcsDraftCommand command, DraftConflictChoice? choice) =>
+            AssignCore(destination, command, OccupiedDestinationBehavior.Ask, choice, reviewOnly: true);
+
+        /// <summary>Checks a transfer and its occupied-destination decision without changing the draft.</summary>
+        public DraftResult ReviewTransfer(DcsDraftAssignmentSlot source, DcsDraftAssignmentSlot destination, bool copy, DraftConflictChoice? choice) =>
+            Transfer(source, destination, OccupiedDestinationBehavior.Ask, choice, copy, reviewOnly: true);
+
         /// <summary>Moves a command between controls on the same device instance and layer.</summary>
         /// <param name="source">Occupied source control.</param>
         /// <param name="destination">Destination control.</param>
@@ -230,8 +227,23 @@ namespace Heimdall.Application
         }
         #endregion END Public
         #region BEGIN private helpers
+        private DraftResult AssignCore(DcsDraftAssignmentSlot destination, DcsDraftCommand command,
+            OccupiedDestinationBehavior behavior, DraftConflictChoice? choice, bool reviewOnly)
+        {
+            if (_editSuspensions > 0) return Block(SuspendedMessage);
+            if (!Validate(destination, command, out var reason))
+                return Block(reason);
+            _current.TryGetValue(DcsInputKey.PhysicalSlotKey(destination), out var existing);
+            var incoming = new DcsDraftAssignment(destination, command) { Filter = existing?.Filter };
+            if (existing == incoming)
+                return Unchanged();
+            var conflict = Conflict(existing, behavior, choice, false);
+            if (conflict is not null)
+                return conflict;
+            return reviewOnly ? Ready() : Commit("Assign", [new(destination, existing, incoming)]);
+        }
         private DraftResult Transfer(DcsDraftAssignmentSlot source, DcsDraftAssignmentSlot destination,
-                                     OccupiedDestinationBehavior behavior, DraftConflictChoice? choice, bool copy)
+                                     OccupiedDestinationBehavior behavior, DraftConflictChoice? choice, bool copy, bool reviewOnly = false)
         {
             if (_editSuspensions > 0) return Block(SuspendedMessage);
             if (!SameContext(source, destination, out var reason))
@@ -249,6 +261,7 @@ namespace Heimdall.Application
             var conflict = Conflict(existing, behavior, choice, !copy);
             if (conflict is not null)
                 return conflict;
+            if (reviewOnly) return Ready();
             if (existing is not null && choice == DraftConflictChoice.Swap)
                 return Commit(
                     "Swap",
@@ -355,6 +368,7 @@ namespace Heimdall.Application
         private static string CommandKey(DcsDraftCommand command) => command.Layer + "\u001f" + command.Id;
         private static DraftResult Block(string? message) => new(DraftOutcome.Blocked,
                                                                  message ?? "Invalid assignment.");
+        private static DraftResult Ready() => new(DraftOutcome.Applied, "");
         private static DraftResult Unchanged() => new(DraftOutcome.NoChange, "No draft change.");
         #endregion END private helpers
     }

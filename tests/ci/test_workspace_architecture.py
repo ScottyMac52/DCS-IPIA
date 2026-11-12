@@ -122,7 +122,7 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         for forbidden in ('Heimdall.Dcs', 'Dcs', 'Module', 'UiLayerDiagram'):
             self.assertNotIn(forbidden, base)
         for responsibility in ('CommandsPanel', 'ControllerPanel', 'EditorPanel',
-                               'ExecuteAssignment', 'SaveAssignmentsAsync', 'DiscardAssignments',
+                               'BindEditing', 'SaveAssignmentsAsync', 'DiscardAssignments',
                                'BindAssignmentChanges'):
             self.assertIn(responsibility, base)
         root = ET.parse(APP / 'Features/Assignments/DcsAssignmentsView.xaml').getroot()
@@ -137,6 +137,19 @@ class WorkspaceArchitectureTests(unittest.TestCase):
         self.assertLess(len(source.splitlines()), 350)
         self.assertFalse((APP / 'Features/Assignments/Selection/DcsAssignmentsView.cs').exists())
         self.assertFalse((APP / 'Features/Assignments/Workflow/DcsAssignmentsView.cs').exists())
+
+    def test_all_assignment_adapters_use_the_context_owned_editing_role(self):
+        paths = ('Features/Assignments/DcsAssignmentEditing.cs',
+                 'Games/Elite/EliteAssignmentEditing.cs',
+                 'Games/Squadrons/SquadronsAssignmentEditing.cs',
+                 'Games/WarThunder/WarThunderAssignmentEditing.cs')
+        for path in paths:
+            source = (APP / path).read_text()
+            self.assertIn(': GameAssignmentEditingBase(', source, path)
+            self.assertNotIn('new WorkspaceAssignmentWorkflow', source, path)
+        owner = (APP.parent / 'Heimdall.Application/Games/GameAssignmentEditingBase.cs').read_text()
+        self.assertIn('context.AssignmentWorkflow.Execute(', owner)
+        self.assertNotIn('new WorkspaceAssignmentWorkflow', owner)
 
     def test_elite_uses_shared_workspace_and_assignment_algorithms(self):
         window = (APP / 'Games/Elite/EliteWorkspaceWindow.xaml.cs').read_text()

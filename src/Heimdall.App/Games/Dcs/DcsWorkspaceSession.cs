@@ -68,12 +68,18 @@ namespace Heimdall.App.Games.Dcs
         internal event EventHandler? StateChanged;
         internal event EventHandler<string>? StatusChanged;
 
-        internal void SetLabel(string key, string? value)
+        internal void SetLabel(string key, string? value) => SetLabels([new(key, value)]);
+
+        internal void SetLabels(IReadOnlyList<KeyValuePair<string, string?>> labels)
         {
             RequireEditable();
-            if (string.IsNullOrWhiteSpace(value)) _labels.Remove(key);
-            else _labels[key] = value;
-            RaiseStateChanged();
+            var changed = false;
+            foreach (var (key, value) in labels)
+            {
+                if (string.IsNullOrWhiteSpace(value)) changed |= _labels.Remove(key);
+                else if (_labels.GetValueOrDefault(key) != value) { _labels[key] = value; changed = true; }
+            }
+            if (changed) RaiseStateChanged();
         }
 
         internal WorkspaceOperationResult RunStructureEdit(Func<DcsEditorWorkspaceSnapshot, DcsEditorWorkspaceSnapshot> edit)

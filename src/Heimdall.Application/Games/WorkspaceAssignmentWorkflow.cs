@@ -23,16 +23,21 @@ namespace Heimdall.Application.Games
             }));
         }
         /// <summary>Checks fresh state and adapter review, then executes one action without persisting or deploying files.</summary>
-        public DraftResult Execute(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation)
+        public DraftResult Execute(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation) =>
+            Execute(host, operation, null, null);
+
+        internal DraftResult Execute(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation,
+            Func<WorkspaceAssignmentContext, DraftResult?>? checkAction, Action<DraftResult>? onCompleted)
         {
             ArgumentNullException.ThrowIfNull(host); ArgumentNullException.ThrowIfNull(operation);
             if (Interlocked.CompareExchange(ref _executing, 1, 0) != 0) return new(DraftOutcome.Blocked, "Another assignment operation is already running.");
             try
             {
                 Selection = operation.Target;
-                var result = Run(host, operation);
+                var result = Run(host, operation, checkAction);
                 if (result.Outcome == DraftOutcome.Blocked || host.Context.Scope != operation.Target.Scope) Selection = null;
                 Completed?.Invoke(this, result);
+                onCompleted?.Invoke(result);
                 return result;
             }
             catch { Selection = null; throw; }
@@ -40,13 +45,14 @@ namespace Heimdall.Application.Games
         }
         #endregion END Public
         #region BEGIN private helpers
-        private static DraftResult Run(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation)
+        private static DraftResult Run(IWorkspaceAssignmentHost host, IWorkspaceAssignmentOperation operation,
+            Func<WorkspaceAssignmentContext, DraftResult?>? checkAction)
         {
-            var blocked = Check(host.Context, operation.Target);
+            var blocked = Check(host.Context, operation.Target, checkAction);
             if (blocked is not null) return blocked;
             var before = host.CaptureSnapshot();
             var review = operation.Review();
-            blocked = Check(host.Context, operation.Target);
+            blocked = Check(host.Context, operation.Target, checkAction);
             if (blocked is not null) return blocked;
             if (host.CaptureSnapshot() != before) return new(DraftOutcome.Blocked, "The draft changed during review. Review the current assignment again.");
             if (!review.Valid) return new(DraftOutcome.Blocked, review.Message);
@@ -57,11 +63,12 @@ namespace Heimdall.Application.Games
                 ? new(DraftOutcome.NoChange, "Assignment unchanged.")
                 : result with { Message = result.Message.Length == 0 ? "Assignment changed and staged. Save before exporting." : result.Message };
         }
-        private static DraftResult? Check(WorkspaceAssignmentContext context, WorkspaceAssignmentTarget target)
+        private static DraftResult? Check(WorkspaceAssignmentContext context, WorkspaceAssignmentTarget target,
+            Func<WorkspaceAssignmentContext, DraftResult?>? checkAction)
         {
             if (context.BlockedReason.Length != 0) return new(DraftOutcome.Blocked, context.BlockedReason);
             return string.IsNullOrWhiteSpace(target.Scope) || context.Scope != target.Scope
-                ? new(DraftOutcome.Blocked, "The assignment target changed. Select the current controller and input again.") : null;
+                ? new(DraftOutcome.Blocked, "The assignment target changed. Select the current controller and input again.") : checkAction?.Invoke(context);
         }
         #endregion END private helpers
     }

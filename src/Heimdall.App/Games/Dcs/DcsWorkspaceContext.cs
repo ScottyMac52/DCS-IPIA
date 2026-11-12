@@ -75,6 +75,8 @@ namespace Heimdall.App.Games.Dcs
         public void SetStatus(string message) => ReportStatus(message);
         /// <inheritdoc/>
         public void SetLabel(string key, string? value) => RunEdit(() => _session.SetLabel(key, value));
+        /// <inheritdoc/>
+        public void SetLabels(IReadOnlyList<KeyValuePair<string, string?>> labels) => RunEdit(() => _session.SetLabels(labels));
         #endregion END Public
         protected override NativeWorkspaceFacts ReadNativeFacts()
         {

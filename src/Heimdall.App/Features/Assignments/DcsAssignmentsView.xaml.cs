@@ -4,7 +4,6 @@ using Heimdall.App.Games;
 using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using System.Globalization;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -42,10 +41,11 @@ namespace Heimdall.App.Features.Assignments
             AssignmentWorkspace.AllowDrop = true;
             _inspector = new(_state, InputPicker, SelectedCallout, InspectorDetails, LabelEditor, GenericControlName,
                 RenameGenericControlButton, RefreshAssignmentActions);
-            _labels = new(_state, this, LabelEditor, GenericControlName, SelectedCallout, RefreshDiagram);
             _editing = new(_state, this, SelectedCallout, () => CommandManager.SelectedCommand, RefreshDiagram,
-                _inspector.ClearLabel, AssignmentContext, CaptureAssignmentSnapshot, ExecuteNativeAssignment);
-            _drag = new(_state, this, AssignmentWorkspace, SelectedCallout, _editing, RefreshDiagram);
+                _inspector.ClearLabel, AssignmentContext, ShowAssignmentActions);
+            BindEditing(_editing);
+            _labels = new(_state, this, LabelEditor, GenericControlName, SelectedCallout, RefreshDiagram, _editing.EditLabels);
+            _drag = new(_state, AssignmentWorkspace, SelectedCallout, _editing, RefreshDiagram);
             _diagram = new(_state, this, Diagram, Zoom, DeviceTitle, InputPicker, _inspector, _drag, _labels,
                 _editing, AssignmentContext, AssignmentAction);
             _preview = new(_state, this, SelectedCallout);
@@ -92,11 +92,6 @@ namespace Heimdall.App.Features.Assignments
                 });
             return context.Context;
         }
-        protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(new
-        {
-            Assignments = _state.Context?.Draft?.Snapshot,
-            Labels = _state.Context?.Labels.OrderBy(item => item.Key, StringComparer.Ordinal).ToArray()
-        });
         /// <inheritdoc/>
         protected override void OnFeatureActiveChanged(bool active) => CommandManager.SetFeatureActive(active);
         protected override Task SaveAssignmentsCoreAsync() => _state.Context?.SaveAsync()
@@ -113,8 +108,6 @@ namespace Heimdall.App.Features.Assignments
         protected override string SaveFailurePrefix => "Database save failed: ";
         #region BEGIN private helpers
         private WorkspaceAssignmentContext AssignmentContext() => CurrentAssignmentContext;
-        private DraftResult ExecuteNativeAssignment(DcsDraftAssignmentSlot slot, string command, Func<DraftResult> apply) =>
-            ExecuteAssignment(new(CaptureAssignmentContext().Scope, command, slot.InputKey, slot.Key), apply);
         private void RefreshDiagram() => _diagram?.RefreshDiagram();
         private void FitDiagramClicked(object sender, RoutedEventArgs e) => _viewport.Fit();
         private void InputPickerChanged(object sender, SelectionChangedEventArgs e) => _diagram?.InputPickerChanged(sender, e);
@@ -256,7 +249,7 @@ namespace Heimdall.App.Features.Assignments
                 _ => false
             };
             var supported = action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.Clear or WorkspaceAssignmentAction.TuneAxis or WorkspaceAssignmentAction.Inspect;
-            return WorkspaceAssignmentActionState.For(action, AssignmentContext(), new(supported, ready,
+            return Editing.ActionState(action, new(supported, ready,
                 action != WorkspaceAssignmentAction.Clear && reserved is not null ? reserved : "Select a compatible command and controller input; Clear and Tune require an existing assignment."));
         }
         private void RefreshAssignmentActions()

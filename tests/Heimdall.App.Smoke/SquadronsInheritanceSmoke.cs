@@ -34,6 +34,7 @@ namespace Heimdall.App.Smoke
             var content = (ContentControl)window.FindName("FeatureContent");
             Require(content.Content is GameAssignmentsView, "Squadrons did not mount the common assignment-view base.");
             var assignments = (SquadronsAssignmentsView)content.Content;
+            AssignmentEditingConformanceSmoke.Verify(assignments, window.WorkspaceContext);
             Require(window.Session!.AccessMessage.Length == 0, "The Squadrons inheritance fixture is not writable.");
             window.Width = 1050; window.Height = 650;
             ThemeControlSmoke.Pump(window);

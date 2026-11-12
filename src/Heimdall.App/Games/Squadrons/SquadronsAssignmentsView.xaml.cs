@@ -1,5 +1,4 @@
 using System.Windows.Controls;
-using System.Text.Json;
 using Heimdall.Application;
 using Heimdall.Application.Games;
 
@@ -33,13 +32,7 @@ namespace Heimdall.App.Games.Squadrons
             BindAssignmentContext(context);
         }
         internal void RefreshNativeAssignments() => SynchronizeNativeAssignments();
-        internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
-            WorkspaceAssignmentActionState.For(action, CurrentAssignmentContext, new(true, ready, reason));
-        internal DraftResult ExecuteNativeAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>
-            ExecuteAssignment(new(CurrentAssignmentContext.Scope, command, input, alternative),
-                () => { apply(); return new(DraftOutcome.Applied, ""); }, review);
         protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context?.AssignmentContext ?? new("", false, false, false, false);
-        protected override string CaptureAssignmentSnapshot() => JsonSerializer.Serialize(_context?.Session?.Snapshot);
         protected override Task SaveAssignmentsCoreAsync() => _save?.Invoke() ?? throw new InvalidOperationException("Open a Squadrons workspace before saving.");
         protected override void DiscardAssignmentsCore()
         {
