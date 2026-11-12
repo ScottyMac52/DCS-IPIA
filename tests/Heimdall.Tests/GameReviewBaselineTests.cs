@@ -24,31 +24,67 @@ namespace Heimdall.Tests
             var before = session.ContentFingerprint; var notifications = 0;
             session.Changed += (_, _) => notifications++;
             for (var i = 0; i < 20; i++) Assert.Equal(new(true, false, ""), session.ReviewNativeEdit(edit));
-            Assert.Equal(20, edit.Calls); Assert.Equal(1, session.ReviewBaselineBuilds);
+            Assert.Equal(20, edit.Calls); Assert.Equal(0, session.ReviewBaselineBuilds);
             Assert.Equal(before, session.ContentFingerprint); Assert.Equal(0, notifications); Assert.False(session.HasChanges);
             edit.Fail = true;
-            Assert.False(session.ReviewNativeEdit(edit).Valid); Assert.Equal(21, edit.Calls); Assert.Equal(1, session.ReviewBaselineBuilds);
+            Assert.False(session.ReviewNativeEdit(edit).Valid); Assert.Equal(21, edit.Calls); Assert.Equal(0, session.ReviewBaselineBuilds);
             edit.Fail = false;
-            session.Rename("Renamed"); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(2, session.ReviewBaselineBuilds);
-            session.AcceptSaved(); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(3, session.ReviewBaselineBuilds);
-            session.Rename("Again"); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(4, session.ReviewBaselineBuilds);
-            session.Discard(); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(5, session.ReviewBaselineBuilds);
+            session.Rename("Renamed"); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(1, session.ReviewBaselineBuilds);
+            session.AcceptSaved(); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(2, session.ReviewBaselineBuilds);
+            session.Rename("Again"); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(3, session.ReviewBaselineBuilds);
+            session.Discard(); Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(4, session.ReviewBaselineBuilds);
             Assert.Equal("Renamed", session.Name); Assert.False(session.HasChanges);
             var reopened = Open(game, issuer.Policy); Assert.True(reopened.ReviewNativeEdit(edit).Valid);
-            Assert.Equal(1, reopened.ReviewBaselineBuilds);
+            Assert.Equal(0, reopened.ReviewBaselineBuilds);
         }
-        /// <summary>Failed candidates and denied access never populate a comparison baseline.</summary>
+        /// <summary>Failed candidates and denied access never trigger extra baseline validation.</summary>
         [Theory]
         [InlineData("elite")][InlineData("squadrons")][InlineData("war-thunder")]
         public void Failures_do_not_install_a_baseline_or_bypass_access(string game)
         {
             using var issuer = new OwnerLicenseTestIssuer();
             var session = Open(game, issuer.Policy); var edit = new ReviewNativeEditProbe(session.Snapshot.Profile.BackendId) { Fail = true };
+            session.Rename("Renamed");
             Assert.False(session.ReviewNativeEdit(edit).Valid); Assert.Equal(0, session.ReviewBaselineBuilds);
             edit.Fail = false; Assert.True(session.ReviewNativeEdit(edit).Valid); Assert.Equal(1, session.ReviewBaselineBuilds);
             var locked = Open(game, new EditionPolicy()); var calls = edit.Calls;
             Assert.False(locked.ReviewNativeEdit(edit).Valid); Assert.Equal(calls, edit.Calls); Assert.Equal(0, locked.ReviewBaselineBuilds);
         }
+        /// <summary>The first Elite draft uses the opening payload and allocates less than rebuilding it.</summary>
+        [Fact]
+        public void First_elite_availability_review_avoids_baseline_validation_and_its_allocations()
+        {
+            using var issuer = new OwnerLicenseTestIssuer();
+            var warmup = Open("elite", issuer.Policy);
+            var warmupDraft = AssignmentDraft(warmup);
+            warmup.ReviewAssignmentAvailability(warmupDraft);
+            warmup.Rename("Renamed");
+            warmup.ReviewAssignmentAvailability(warmupDraft);
+
+            var session = Open("elite", issuer.Policy);
+            var draft = AssignmentDraft(session);
+            var copies = session.SnapshotCopies;
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var openingReview = session.ReviewAssignmentAvailability(draft);
+            var openingBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.True(openingReview.Valid && openingReview.Changed, openingReview.Message);
+            Assert.Equal(0, session.ReviewBaselineBuilds);
+            Assert.Equal(copies + 1, session.SnapshotCopies);
+
+            session.Rename("Renamed");
+            before = GC.GetAllocatedBytesForCurrentThread();
+            var rebuiltReview = session.ReviewAssignmentAvailability(draft);
+            var rebuiltBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(openingReview, rebuiltReview);
+            Assert.Equal(1, session.ReviewBaselineBuilds);
+            Assert.Equal(copies + 2, session.SnapshotCopies);
+            Assert.True(openingBytes < rebuiltBytes,
+                $"Opening availability allocated {openingBytes:N0} bytes; rebuilding the baseline allocated {rebuiltBytes:N0} bytes.");
+        }
+
         /// <summary>Identical display drafts share one snapshot, including separately constructed modifier inputs.</summary>
         [Fact]
         public void Assignment_availability_is_bounded_and_fresh_review_stays_independent()
