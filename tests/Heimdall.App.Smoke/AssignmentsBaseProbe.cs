@@ -2,7 +2,6 @@ using System.Windows.Controls;
 using Heimdall.App.Games;
 using Heimdall.Application;
 using Heimdall.Application.Games;
-using Heimdall.Application.Interfaces;
 
 namespace Heimdall.App.Smoke
 {
@@ -63,15 +62,6 @@ namespace Heimdall.App.Smoke
         private DraftResult ExecuteAssignment(WorkspaceAssignmentTarget target, Func<DraftResult> apply, Func<GameAssignmentReview>? review = null) =>
             Editing.Execute(WorkspaceAssignmentAction.Apply, new WorkspaceAssignmentOperation(target,
                 review ?? (() => new(true, true, "")), apply));
-
-        private sealed class AssignmentsEditingProbe(IGameWorkspaceContext context, Func<WorkspaceAssignmentContext> readState)
-            : GameAssignmentEditingBase(() => context)
-        {
-            protected override WorkspaceAssignmentContext ReadAssignmentContext(IGameWorkspaceContext context) => readState();
-            protected override WorkspaceAssignmentActionSupport ReadNativeSupport(WorkspaceAssignmentAction action) => new(true, true);
-            protected override void RefreshNativeEditor() { }
-            protected override void ReportNativeResult(DraftResult result) { }
-        }
 
         protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _context.Context with { Busy = Busy || _context.Context.Busy };
         protected override async Task SaveAssignmentsCoreAsync()
