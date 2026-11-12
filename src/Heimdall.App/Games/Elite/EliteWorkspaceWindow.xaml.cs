@@ -79,6 +79,7 @@ namespace Heimdall.App.Games.Elite
             {
                 if (_session is not null) { _refreshing = true; ProfileName.Text = _session.Name; _refreshing = false; }
             });
+            _assignmentsView.BindEditing(_editing);
             _assignmentsView.Initialize(_context, _editing.LoadAssignment, _editing.UpdateAvailability, _drawing.RenderDevice,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), Status);
             ConfigureWorkspace(FeatureContent, FeatureActions,

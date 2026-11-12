@@ -17,7 +17,7 @@ namespace Heimdall.App.Games.Elite
         Func<IReadOnlyList<ControllerObservation>> evidence,
         Action refreshAvailability,
         Action<Action> Run,
-        Action<string> Status)
+        Action<string> Status) : GameAssignmentEditingBase(() => context)
     {
         private readonly List<EliteModifierChoice> _modifiers = [];
         private ProfileContentCache<int, IReadOnlyDictionary<string, string>?>? _metadata;
@@ -75,8 +75,8 @@ namespace Heimdall.App.Games.Elite
         {
             refreshAvailability();
             if (_session is not { } session || Draft() is not { } draft) return;
-            AssignmentFeedback(ExecuteAssignment(draft.CommandId, draft.Key, draft.Slot,
-                () => session.ReviewAssignment(draft), () => session.Assign(draft)));
+            ExecuteNative(WorkspaceAssignmentAction.Apply, draft.CommandId, draft.Key, draft.Slot,
+                () => session.ReviewAssignment(draft), () => session.Assign(draft));
         });
 
         internal void ClearClicked(object sender, RoutedEventArgs e) => Run(() =>
@@ -85,8 +85,8 @@ namespace Heimdall.App.Games.Elite
             if (_session is not { } session || Command is not { } command) return;
             var slot = Slot;
             var assigned = _rows.Any(row => row.CommandId == command.Id && row.Slot == slot);
-            AssignmentFeedback(ExecuteAssignment(command.Id, "", slot,
-                () => new(true, assigned, ""), () => session.Clear(command.Id, slot)));
+            ExecuteNative(WorkspaceAssignmentAction.Clear, command.Id, "", slot,
+                () => new(true, assigned, ""), () => session.Clear(command.Id, slot));
         });
 
         internal void AddModifierClicked(object sender, RoutedEventArgs e)
@@ -196,10 +196,12 @@ namespace Heimdall.App.Games.Elite
         }
 
         private WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
-            _assignmentsView.ActionState(action, ready, reason);
-        private DraftResult ExecuteAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>
-            _assignmentsView.ExecuteNativeAssignment(command, input, alternative, review, apply);
-        private void AssignmentFeedback(DraftResult result)
+            ActionState(action, new(true, ready, reason));
+        protected override WorkspaceAssignmentActionSupport ReadNativeSupport(WorkspaceAssignmentAction action) =>
+            new(action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.Clear or WorkspaceAssignmentAction.TuneAxis
+                or WorkspaceAssignmentAction.StartInput or WorkspaceAssignmentAction.StopInput or WorkspaceAssignmentAction.Fit, true);
+        protected override void RefreshNativeEditor() => refreshAvailability();
+        protected override void ReportNativeResult(DraftResult result)
         {
             Status(result.Message); _assignmentsView.AssignmentDraftStatus.Text = result.Message;
         }

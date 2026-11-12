@@ -116,14 +116,13 @@ namespace Heimdall.App.Games.Elite
             var session = _session!;
             var invert = row.Invert;
             var deadzone = row.Deadzone;
-            var result = ExecuteAssignment(row.CommandId, row.Input, row.Slot, () =>
+            _assignmentsView.ExecuteNativeAssignment(row.CommandId, row.Input, row.Slot, () =>
             {
                 var accepted = AxisTuningReview is { } review ? review(dialog) : dialog.ShowDialog();
                 if (accepted != true || !dialog.TryRead(out invert, out deadzone))
                     return new(false, false, "Axis tuning canceled.");
                 return new(true, invert != row.Invert || deadzone != row.Deadzone, "");
-            }, () => session.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone));
-            AssignmentFeedback(result);
+            }, () => session.AssignAxis(row.DeviceId, row.CommandId, row.Input, invert, deadzone), WorkspaceAssignmentAction.TuneAxis);
         });
 
         private void SelectControl(HardwareGraphicControl control)
@@ -147,18 +146,12 @@ namespace Heimdall.App.Games.Elite
         private bool CanDropCommand(HardwareGraphicControl control, string commandId) =>
             _commands.Any(command => command.Id == commandId && (command.Type == CommandType.Axis) == control.IsAxis) && context.DrawingKey(control) is not null;
         private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action) =>
-            _assignmentsView.ActionState(action, action switch
+            _assignmentsView.Editing.ActionState(action, new(true, action switch
             {
                 WorkspaceAssignmentAction.Clear => AssignmentForControl(control) is not null,
                 WorkspaceAssignmentAction.TuneAxis => control.IsAxis && AssignmentForControl(control)?.IsAxis == true,
                 _ => true
-            }, "No editable assignment on owner control.");
-        private DraftResult ExecuteAssignment(string command, string input, string alternative, Func<GameAssignmentReview> review, Action apply) =>
-            _assignmentsView.ExecuteNativeAssignment(command, input, alternative, review, apply);
-        private void AssignmentFeedback(DraftResult result)
-        {
-            Status(result.Message); _assignmentsView.AssignmentDraftStatus.Text = result.Message;
-        }
+            }, "No editable assignment on owner control."));
         #endregion END private helpers
     }
 }

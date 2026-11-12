@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.Domain.MultiSim;
 using Heimdall.WarThunder;
 
@@ -10,7 +11,7 @@ namespace Heimdall.App.Games.WarThunder
     /// <summary>Presents native controller input choices; the adapter owns parsing, range checks and mutations.</summary>
     public partial class WarThunderNativeEditorView : UserControl
     {
-        internal Func<WorkspaceAssignmentContext>? CaptureContext { get; set; }
+        internal IGameAssignmentEditing? Editing { get; set; }
         internal Func<string, IReadOnlyList<WarThunderPhysicalInput>>? MappedInputs { get; set; }
         private GameProfileSession? _session;
         private readonly Dictionary<WarThunderNativeEdit, GameAssignmentReview> _reviews = [];
@@ -93,7 +94,6 @@ namespace Heimdall.App.Games.WarThunder
         }
         internal WorkspaceAssignmentActionState ActionState(WorkspaceAssignmentAction action)
         {
-            var context = CaptureContext?.Invoke() ?? new WorkspaceAssignmentContext(_selection.Scope, _session is not null, _session?.AccessMessage.Length > 0, false, _busy);
             var review = action switch
             {
                 WorkspaceAssignmentAction.Apply => ReviewInput(),
@@ -109,9 +109,11 @@ namespace Heimdall.App.Games.WarThunder
                 WorkspaceAssignmentAction.TuneAxis => _capabilities?.SetAxisInverse == true || _capabilities?.EditableParameterAddresses.Count > 0,
                 _ => false
             };
-            return WorkspaceAssignmentActionState.For(action, context, new(true, targetCurrent && ready,
+            var support = new WorkspaceAssignmentActionSupport(true, targetCurrent && ready,
                 !targetCurrent ? _selection.InputBlockedReason : action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.AddAlternative
-                    ? review.Valid ? "Assignment unchanged." : review.Message : "Select an editable native assignment that supports this operation."));
+                    ? review.Valid ? "Assignment unchanged." : review.Message : "Select an editable native assignment that supports this operation.");
+            return Editing?.ActionState(action, support) ?? WorkspaceAssignmentActionState.For(action,
+                new(_selection.Scope, _session is not null, _session?.AccessMessage.Length > 0, false, _busy), support);
         }
         /// <summary>Updates gates without reloading the pending native field, target or index.</summary>
         internal void RefreshAvailability(bool busy) { _busy = busy; UpdateActions(); }

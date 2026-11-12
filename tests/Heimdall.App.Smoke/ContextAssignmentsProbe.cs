@@ -20,7 +20,6 @@ namespace Heimdall.App.Smoke
         internal bool FailReload { get; set; }
         internal void ReloadNative() => RefreshAssignments();
         protected override WorkspaceAssignmentContext CaptureAssignmentContext() => _fixture.Context.Context;
-        protected override string CaptureAssignmentSnapshot() => _fixture.NativeSnapshot();
         protected override Task SaveAssignmentsCoreAsync() => Task.CompletedTask;
         protected override void DiscardAssignmentsCore() { }
         protected override void RefreshAssignmentsCore()

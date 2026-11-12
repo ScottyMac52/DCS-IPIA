@@ -57,6 +57,7 @@ namespace Heimdall.App.Games.WarThunder
                 Refresh();
             });
             _drawing.Start(); _controllers.Start();
+            _assignments.BindEditing(_editing);
             _assignments.Initialize(_context, _editing.RefreshEditor, _editing.RefreshAvailability, _drawing.ShowDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => Status.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,
@@ -218,7 +219,7 @@ namespace Heimdall.App.Games.WarThunder
 
         private void WireAssignments()
         {
-            _assignments.Editor.CaptureContext = () => _assignments.ActionContext;
+            _assignments.Editor.Editing = _assignments.Editing;
             _assignments.Editor.NativeSelectionChanged += (_, _) => _context.SelectedPhysicalInput = null;
             var browser = _assignments.Browser;
             _assignments.ShowAssignments.Click += (_, _) => { browser.CommandsList.SelectedItem = null; _assignments.CapturedAssignments.IsExpanded = true; _browser.RefreshRecords(); };

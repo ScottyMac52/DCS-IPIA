@@ -21,7 +21,7 @@ namespace Heimdall.App.Games.Squadrons
         Action<Action> run,
         TextBlock StatusText,
         SquadronsAssignmentsView _assignmentsView,
-        Window owner)
+        Window owner) : GameAssignmentEditingBase(() => context)
     {
         #region BEGIN Public
         #endregion END Public
@@ -234,7 +234,7 @@ namespace Heimdall.App.Games.Squadrons
         });
 
         internal WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
-            _assignmentsView.ActionState(action, ready, reason);
+            ActionState(action, new(true, ready, reason));
 
         private WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action)
         {
@@ -267,7 +267,7 @@ namespace Heimdall.App.Games.Squadrons
             var command = session.Catalog.Commands.Single(item => item.Metadata["squadrons.concept"] == pair.Positive.Native.Concept);
             var edit = new SquadronsCommandEdit(SquadronsCommandEditKind.ReverseAxis, command.Id,
                 pair.Positive.DeviceId, control.InputKey, CommandType.Axis);
-            var result = ExecuteAssignment(command.Id, control.InputKey, pair.Positive.RecordId,
+            var result = ExecuteNative(WorkspaceAssignmentAction.TuneAxis, command.Id, control.InputKey, pair.Positive.RecordId,
                 () => dialog.ShowDialog() == true
                     ? reverse.IsChecked == true ? session.ReviewNativeEdit(edit) : new(true, false, "")
                     : new(false, false, "Axis tuning canceled."),
@@ -298,7 +298,8 @@ namespace Heimdall.App.Games.Squadrons
         internal DraftResult ExecuteNativeAssignment(SquadronsCommandEdit edit)
         {
             var session = context.Session ?? throw new InvalidOperationException("Open a configuration before editing assignments.");
-            var result = ExecuteAssignment(edit.CommandId, edit.Key, edit.RecordId,
+            var result = ExecuteNative(edit.Kind == SquadronsCommandEditKind.ReverseAxis ? WorkspaceAssignmentAction.ReverseAxis : WorkspaceAssignmentAction.Apply,
+                edit.CommandId, edit.Key, edit.RecordId,
                 () => session.ReviewNativeEdit(edit), () => session.ApplyNativeEdit(edit));
             return result.Outcome != DraftOutcome.Applied ? result : result with
             {
@@ -312,8 +313,14 @@ namespace Heimdall.App.Games.Squadrons
         }
 
         internal DraftResult ExecuteAssignment(string command, string input, string alternative,
-            Func<GameAssignmentReview> review, Action apply) =>
-            _assignmentsView.ExecuteNativeAssignment(command, input, alternative, review, apply);
+            Func<GameAssignmentReview> review, Action apply, WorkspaceAssignmentAction action) =>
+            ExecuteNative(action, command, input, alternative, review, apply);
+
+        protected override WorkspaceAssignmentActionSupport ReadNativeSupport(WorkspaceAssignmentAction action) =>
+            new(action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.Clear or WorkspaceAssignmentAction.TuneAxis
+                or WorkspaceAssignmentAction.ReverseAxis or WorkspaceAssignmentAction.Inspect, true);
+        protected override void RefreshNativeEditor() => UpdateApplyAvailability();
+        protected override void ReportNativeResult(DraftResult result) => AssignmentFeedback(result);
 
         internal void AssignmentFeedback(DraftResult result)
         {

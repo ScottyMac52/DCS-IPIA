@@ -35,6 +35,7 @@ namespace Heimdall.App.Smoke
             var content = (ContentControl)window.FindName("FeatureContent");
             Require(content.Content is GameAssignmentsView, "War Thunder did not mount the common assignment-view base.");
             var assignments = (WarThunderAssignmentsView)content.Content;
+            AssignmentEditingConformanceSmoke.Verify(assignments, window.WorkspaceContext);
             Require(window.Session!.AccessMessage.Length == 0, "The War Thunder inheritance fixture is not writable.");
             var before = JsonSerializer.Serialize(window.Session.Snapshot);
             var beforeProfile = JsonSerializer.Serialize(window.Session.Snapshot.Profile);

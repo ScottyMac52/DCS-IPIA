@@ -23,7 +23,7 @@ namespace Heimdall.App.Games.WarThunder
         Window owner,
         Func<WarThunderControllerPresenter> controllers,
         Func<WarThunderAssignmentDrawing> drawing,
-        WarThunderAssignmentBrowser browser)
+        WarThunderAssignmentBrowser browser) : GameAssignmentEditingBase(() => context)
     {
         #region BEGIN Public
         internal Action<AxisTuningWindow>? AxisTuningOpened { get; set; }
@@ -123,7 +123,12 @@ namespace Heimdall.App.Games.WarThunder
         internal void ApplyDrawingEdit(WarThunderNativeEdit edit)
         {
             if (context.Session is null || controllers().Input.Running) throw new InvalidOperationException("Stop input testing before editing.");
-            var result = ExecuteAssignment(edit);
+            FinishDrawingEdit(ExecuteAssignment(edit));
+        }
+
+        private void FinishDrawingEdit(DraftResult result)
+        {
+            if (result.Outcome != DraftOutcome.Applied) return;
             context.SelectedPhysicalInput = null; context.Selection.SelectInput(null); RefreshEditor(); refreshChrome();
             Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         }
@@ -148,10 +153,24 @@ namespace Heimdall.App.Games.WarThunder
 
         internal bool CanClearPhysicalControl(HardwareGraphicControl control) => ClearableAssignments(control).Length > 0;
 
-        internal HardwareDiagramClearChoice[] ClearPhysicalChoices(HardwareGraphicControl control) =>
-            ClearableAssignments(control).Select((row, index) => new HardwareDiagramClearChoice(
-                row.Name + " · " + row.Inputs + " · " + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-                () => run(() => ApplyDrawingEdit(new(WarThunderEditKind.Clear, row.RecordId))))).ToArray();
+        internal HardwareDiagramClearChoice[] ClearPhysicalChoices(HardwareGraphicControl control)
+        {
+            if (context.Session is not { } session) return [];
+            var scope = context.Context.Scope;
+            var version = context.ContentVersion;
+            return ClearableAssignments(control).Select((row, index) => new HardwareDiagramClearChoice(
+                row.Name + " · " + row.Inputs + " · " + (index + 1).ToString(CultureInfo.InvariantCulture),
+                () => run(() =>
+                {
+                    var target = new WorkspaceAssignmentTarget(scope, row.Command.Id, control.InputKey, row.RecordId);
+                    var edit = new WarThunderNativeEdit(WarThunderEditKind.Clear, row.RecordId);
+                    var result = Execute(WorkspaceAssignmentAction.Clear, new WorkspaceAssignmentOperation(target,
+                        () => context.ContentVersion == version && ReferenceEquals(context.Session, session)
+                            ? session.ReviewNativeEdit(edit) : new(false, false, "The assignment changed. Open the current control menu again."),
+                        () => { session.ApplyNativeEdit(edit); return new(DraftOutcome.Applied, ""); }));
+                    FinishDrawingEdit(result);
+                }))).ToArray();
+        }
 
         internal void ClearPhysicalControl(HardwareGraphicControl control) => run(() =>
         {
@@ -231,10 +250,9 @@ namespace Heimdall.App.Games.WarThunder
                 return review.Valid ? null : review.Message;
             });
             dialog.Loaded += (_, _) => AxisTuningOpened?.Invoke(dialog);
-            var result = _assignments.ExecuteNativeAssignment(row.Command.Id, inputKey, row.RecordId,
+            ExecuteNative(WorkspaceAssignmentAction.TuneAxis, row.Command.Id, inputKey, row.RecordId,
                 () => dialog.ShowDialog() == true ? review : new(false, false, "Axis tuning canceled."),
                 () => session.ApplyNativeEdit(edit!));
-            Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         }
 
         internal void InspectPhysicalControl(HardwareGraphicControl control) => run(() =>
@@ -257,7 +275,7 @@ namespace Heimdall.App.Games.WarThunder
         });
 
         private WorkspaceAssignmentActionState AssignmentAction(WorkspaceAssignmentAction action, bool ready, string reason = "") =>
-            _assignments.ActionState(action, ready, reason);
+            ActionState(action, new(true, ready, reason));
 
         internal WorkspaceAssignmentActionState ControlAction(HardwareGraphicControl control, WorkspaceAssignmentAction action) =>
             AssignmentAction(action, action switch
@@ -271,9 +289,23 @@ namespace Heimdall.App.Games.WarThunder
         {
             var session = context.Session ?? throw new InvalidOperationException("Open a configuration before editing assignments.");
             var input = context.SelectedPhysicalInput is { } selected && context.Selection.InputKey == selected.Key ? selected.Key : edit.FieldAddress;
-            return _assignments.ExecuteNativeAssignment(edit.CommandId, input, edit.RecordId,
+            var action = edit.Kind switch
+            {
+                WarThunderEditKind.Add => WorkspaceAssignmentAction.AddAlternative,
+                WarThunderEditKind.Clear => WorkspaceAssignmentAction.Clear,
+                WarThunderEditKind.Inverse or WarThunderEditKind.Parameter => WorkspaceAssignmentAction.TuneAxis,
+                _ => WorkspaceAssignmentAction.Apply
+            };
+            return ExecuteNative(action, edit.CommandId, input, edit.RecordId,
                 () => session.ReviewNativeEdit(edit), () => session.ApplyNativeEdit(edit));
         }
+        protected override WorkspaceAssignmentActionSupport ReadNativeSupport(WorkspaceAssignmentAction action) =>
+            new(action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.AddAlternative or WorkspaceAssignmentAction.Clear
+                or WorkspaceAssignmentAction.TuneAxis or WorkspaceAssignmentAction.Inspect
+                or WorkspaceAssignmentAction.StartInput or WorkspaceAssignmentAction.StopInput, true);
+        protected override void RefreshNativeEditor() => RefreshAvailability();
+        protected override void ReportNativeResult(DraftResult result) =>
+            Status.Text = _assignments.Artwork.Feedback.Text = _assignments.Editor.Frame.AssignmentDraftStatus.Text = result.Message;
         #endregion END private helpers
     }
 }

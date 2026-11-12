@@ -11,7 +11,6 @@ namespace Heimdall.App.Features.Assignments
     /// <summary>Owns callout drag lifetime, cursor feedback and DCS move/copy drop handling.</summary>
     internal sealed class DcsAssignmentDragDrop(
         DcsAssignmentViewState state,
-        FrameworkElement owner,
         FrameworkElement AssignmentWorkspace,
         TextBlock SelectedCallout,
         DcsAssignmentEditing editing,
@@ -77,64 +76,10 @@ namespace Heimdall.App.Features.Assignments
             if (e.Data.GetData(typeof(DcsEditorControlDrag)) is DcsEditorControlDrag sourceDrag)
             {
                 var copy = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-                var sourceReservation = state.ReservationError(diagram, sourceDrag.Slot.InputKey);
-                if (copy && sourceReservation is not null)
-                {
-                    SelectedCallout.Text = "Copying an assignment from a reserved modifier is not permitted. " +
-                        sourceReservation;
-                    e.Effects = DragDropEffects.None;
-                    e.Handled = true;
-                    return;
-                }
-                var result = copy
-                    ? state.Context.Draft.Copy(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, null)
-                    : state.Context.Draft.Move(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, null);
-
-                if (result.Outcome == DraftOutcome.ConfirmationRequired)
-                {
-                    var decision = ThemeMessageBox.Show(Window.GetWindow(owner),
-                        "Destination is occupied. Yes: replace; No: swap; Cancel: keep both.",
-                        "Occupied control", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-                    var choice = decision switch
-                    {
-                        MessageBoxResult.Yes => DraftConflictChoice.Replace,
-                        MessageBoxResult.No => DraftConflictChoice.Swap,
-                        _ => DraftConflictChoice.Cancel
-                    };
-                    if (choice == DraftConflictChoice.Swap && sourceReservation is not null)
-                    {
-                        SelectedCallout.Text = "Cannot swap an assignment into a reserved modifier. " + sourceReservation;
-                        e.Effects = DragDropEffects.None;
-                        e.Handled = true;
-                        return;
-                    }
-                    result = copy
-                        ? state.Context.Draft.Copy(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, choice)
-                        : state.Context.Draft.Move(sourceDrag.Slot, destination, OccupiedDestinationBehavior.Ask, choice);
-                }
-
-                if (result.Outcome == DraftOutcome.Applied)
-                {
-                    if (result.Outcome == DraftOutcome.Applied)
-                    {
-                        var sourceKey = sourceDrag.Slot.Key;
-                        var destKey = destination.Key;
-                        var label = state.Context.Labels.GetValueOrDefault(sourceKey);
-
-                        if (!copy)
-                            state.Context.SetLabel(sourceKey, null);
-
-                        if (label is not null)
-                            state.Context.SetLabel(destKey, label);
-
-                        refresh();
-                        SelectedCallout.Text = result.Message;
-                    }
-                }
-                else
-                {
-                    SelectedCallout.Text = result.Message;
-                }
+                var result = editing.Transfer(sourceDrag, destination, copy);
+                if (result.Outcome == DraftOutcome.Applied) refresh();
+                else e.Effects = DragDropEffects.None;
+                SelectedCallout.Text = result.Message;
             }
             else if (e.Data.GetData(typeof(DcsCommandPaletteEntry)) is DcsCommandPaletteEntry command)
             {
@@ -167,13 +112,14 @@ namespace Heimdall.App.Features.Assignments
             };
             _calloutAdorner.Update(e.GetPosition(AssignmentWorkspace));
 
+            var payload = editing.CaptureDrag(slot);
             GiveFeedbackEventHandler feedback = CalloutGiveFeedback;
             source.AddHandler(DragDrop.GiveFeedbackEvent, feedback, true);
             try
             {
                 _calloutLayer?.Add(_calloutAdorner);
                 DragDrop.DoDragDrop(source,
-                    new DataObject(typeof(DcsEditorControlDrag), new DcsEditorControlDrag(slot)),
+                    new DataObject(typeof(DcsEditorControlDrag), payload),
                     DragDropEffects.Move | DragDropEffects.Copy);
             }
             finally

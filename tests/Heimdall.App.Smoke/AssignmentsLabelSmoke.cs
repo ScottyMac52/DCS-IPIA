@@ -49,6 +49,7 @@ namespace Heimdall.App.Smoke
                 view.Resources["ControlForegroundBrush"] = Brushes.Gold;
                 view.Resources["AccentTextBrush"] = Brushes.Gold;
                 ThemeControlSmoke.Pump(window);
+                AssignmentEditingConformanceSmoke.Verify((Heimdall.App.Games.GameAssignmentsView)view, window.DcsContext);
                 var diagram = (Canvas)view.FindName("Diagram")!;
                 var surface = diagram.Children.OfType<Canvas>().Single();
                 var captions = surface.Children.OfType<Border>().ToArray();

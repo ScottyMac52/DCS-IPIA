@@ -80,6 +80,7 @@ namespace Heimdall.App.Games.Squadrons
             });
             _drawing.Start();
             _controllers.Start();
+            _assignmentsView.BindEditing(_editing);
             _assignmentsView.Initialize(_context, _editing.UpdateEditor, _editing.UpdateApplyAvailability, _drawing.RenderDrawing,
                 SaveWorkspaceAsync, () => DiscardClicked(this, new()), message => StatusText.Text = message);
             ConfigureWorkspace(FeatureContent, FeatureActions,

@@ -1,5 +1,6 @@
 using Heimdall.Application;
 using Heimdall.Application.Games;
+using Heimdall.Application.Interfaces;
 using Heimdall.Dcs;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,9 +15,8 @@ namespace Heimdall.App.Features.Assignments
         Func<DcsCommandPaletteEntry?> selectedCommand,
         Action refresh,
         Action clearLabel,
-        Func<WorkspaceAssignmentContext> AssignmentContext,
-        Func<string> AssignmentSnapshot,
-        Func<DcsDraftAssignmentSlot, string, Func<DraftResult>, DraftResult> ExecuteAssignment)
+        Func<WorkspaceAssignmentContext> assignmentContext,
+        Action refreshActions) : GameAssignmentEditingBase(() => state.Context)
     {
         #region BEGIN Public
         internal void AssignClicked(object sender, RoutedEventArgs e)
@@ -72,7 +72,7 @@ namespace Heimdall.App.Features.Assignments
             if (slot is null) return;
 
             var context = state.Context;
-            var result = ExecuteAssignment(slot, "", () =>
+            var result = ExecuteNative(WorkspaceAssignmentAction.Clear, "", slot.InputKey, slot.Key, Ready, () =>
             {
                 var cleared = context.Draft.Remove(slot);
                 if (cleared.Outcome == DraftOutcome.Applied) context.SetLabel(slot.Key, null);
@@ -131,47 +131,77 @@ namespace Heimdall.App.Features.Assignments
             else SelectedCallout.Text = result.Message;
         }
 
-        internal DraftResult AssignWithConfirmation(DcsDraftAssignmentSlot slot, DcsDraftCommand command) =>
-            ExecuteAssignment(slot, command.Id, () => AssignWithConfirmationCore(slot, command));
-
-        internal DraftResult AssignWithConfirmationCore(DcsDraftAssignmentSlot slot, DcsDraftCommand command)
+        internal DraftResult AssignWithConfirmation(DcsDraftAssignmentSlot slot, DcsDraftCommand command)
         {
-            if (state.Context?.Draft is null)
-                return new(DraftOutcome.Blocked, "No draft.");
-            if (state.Context.Working is { } workspace &&
-                workspace.Diagrams.FirstOrDefault(x => x.ProfileId == slot.ProfileId) is { } diagram &&
-                state.ReservationError(diagram, slot.InputKey) is { } blocked)
-                return new(DraftOutcome.Blocked, blocked);
-
-            var draft = state.Context.Draft;
-            var scope = AssignmentContext().Scope;
-            var before = AssignmentSnapshot();
-            var result = draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, null);
-            if (result.Outcome != DraftOutcome.ConfirmationRequired)
-                return result;
-
-            var decision = ThemeMessageBox.Show(
-                Window.GetWindow(owner),
-                "Destination is occupied. Yes: replace; No: swap; Cancel: keep both.",
-                "Occupied control",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
-
-            var choice = decision switch
+            if (state.Context?.Draft is not { } draft) return new(DraftOutcome.Blocked, "No draft.");
+            DraftConflictChoice? choice = null;
+            return ExecuteNative(WorkspaceAssignmentAction.Apply, command.Id, slot.InputKey, slot.Key, () =>
             {
-                MessageBoxResult.Yes => DraftConflictChoice.Replace,
-                MessageBoxResult.No => DraftConflictChoice.Swap,
-                _ => DraftConflictChoice.Cancel
-            };
-            if (AssignmentContext().Scope != scope || AssignmentSnapshot() != before)
-                return new(DraftOutcome.Blocked, "The assignment changed during confirmation. Review the current control again.");
-            return draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice);
+                if (state.Context.Working?.Diagrams.FirstOrDefault(x => x.ProfileId == slot.ProfileId) is { } diagram &&
+                    state.ReservationError(diagram, slot.InputKey) is { } blocked)
+                    return new(false, false, blocked);
+                return ReviewConflict(decision => draft.ReviewAssign(slot, command, decision), ref choice);
+            }, () => draft.Assign(slot, command, OccupiedDestinationBehavior.Ask, choice));
+        }
+
+        internal DcsEditorControlDrag CaptureDrag(DcsDraftAssignmentSlot slot) =>
+            new(slot, assignmentContext().Scope, state.Context!.CaptureSnapshot());
+
+        internal DraftResult Transfer(DcsEditorControlDrag drag, DcsDraftAssignmentSlot destination, bool copy)
+        {
+            if (state.Context is not { Draft: { } draft } context || state.Diagram is not UiLayerDiagram diagram)
+                return new(DraftOutcome.Blocked, "No draft.");
+            var source = drag.Slot;
+            var sourceReservation = state.ReservationError(diagram, source.InputKey);
+            DraftConflictChoice? choice = null;
+            var target = new WorkspaceAssignmentTarget(drag.Scope, "", destination.InputKey, destination.Key);
+            return Execute(WorkspaceAssignmentAction.Apply, new WorkspaceAssignmentOperation(target, () =>
+            {
+                if (context.CaptureSnapshot() != drag.Fingerprint)
+                    return new(false, false, "The assignment changed during drag. Select the current control again.");
+                if (state.ReservationError(diagram, destination.InputKey) is { } blocked)
+                    return new(false, false, blocked);
+                if (copy && sourceReservation is not null)
+                    return new(false, false, "Copying an assignment from a reserved modifier is not permitted. " + sourceReservation);
+                var result = ReviewConflict(decision => draft.ReviewTransfer(source, destination, copy, decision), ref choice);
+                return choice == DraftConflictChoice.Swap && sourceReservation is not null
+                    ? new(false, false, "Cannot swap an assignment into a reserved modifier. " + sourceReservation) : result;
+            }, () =>
+            {
+                var result = copy ? draft.Copy(source, destination, OccupiedDestinationBehavior.Ask, choice)
+                    : draft.Move(source, destination, OccupiedDestinationBehavior.Ask, choice);
+                if (result.Outcome != DraftOutcome.Applied) return result;
+                var labels = new List<KeyValuePair<string, string?>>();
+                if (!copy) labels.Add(new(source.Key, null));
+                if (context.Labels.TryGetValue(source.Key, out var label)) labels.Add(new(destination.Key, label));
+                if (labels.Count > 0) context.SetLabels(labels);
+                return result;
+            }));
+        }
+
+        private GameAssignmentReview ReviewConflict(Func<DraftConflictChoice?, DraftResult> preview, ref DraftConflictChoice? choice)
+        {
+            var result = preview(null);
+            if (result.Outcome == DraftOutcome.ConfirmationRequired)
+            {
+                choice = ThemeMessageBox.Show(Window.GetWindow(owner),
+                    "Destination is occupied. Yes: replace; No: swap; Cancel: keep both.",
+                    "Occupied control", MessageBoxButton.YesNoCancel, MessageBoxImage.Question) switch
+                {
+                    MessageBoxResult.Yes => DraftConflictChoice.Replace,
+                    MessageBoxResult.No => DraftConflictChoice.Swap,
+                    _ => DraftConflictChoice.Cancel
+                };
+                result = preview(choice);
+            }
+            return new(result.Outcome is DraftOutcome.Applied or DraftOutcome.NoChange,
+                result.Outcome == DraftOutcome.Applied, result.Message);
         }
 
         internal void UndoClicked(object sender, RoutedEventArgs e)
         {
             if (state.Context?.Draft is null) return;
-            var result = state.Context.Draft.Undo();
+            var result = ExecuteNative(WorkspaceAssignmentAction.Undo, "", "", "", Ready, state.Context.Draft.Undo);
             refresh();
             SelectedCallout.Text = result.Message;
         }
@@ -195,18 +225,50 @@ namespace Heimdall.App.Features.Assignments
                 return;
             }
 
-            AxisTuningWindow? dialog = null;
-            void Apply()
+            var context = state.Context;
+            var draft = context.Draft;
+            var target = CaptureTarget(assignment.Command.Id, slot.InputKey, slot.Key);
+            GameAssignmentReview ReviewTarget() =>
+                state.ReservationError(diagram, slot.InputKey) is { } blocked ? new(false, false, blocked) : Ready();
+            void ApplyDialog(AxisTuningWindow dialog, Func<GameAssignmentReview> review)
             {
-                var result = state.Context.Draft.TuneAxis(slot, dialog!.Filter);
-                SelectedCallout.Text = result.Message;
+                var result = Execute(WorkspaceAssignmentAction.TuneAxis, new WorkspaceAssignmentOperation(target, review,
+                    () => draft.TuneAxis(slot, dialog.Filter)));
                 if (result.Outcome == DraftOutcome.Applied) refresh();
             }
-            dialog = new AxisTuningWindow(assignment.Filter, AxisTuningPresenter is null ? null : Apply)
-                { Owner = Window.GetWindow(owner) };
-            if (AxisTuningPresenter is { } presenter) presenter(dialog);
-            else if (dialog.ShowDialog() == true) Apply();
+
+            if (AxisTuningPresenter is { } presenter)
+            {
+                if (!ActionState(WorkspaceAssignmentAction.TuneAxis).Enabled) return;
+                var before = context.CaptureSnapshot();
+                AxisTuningWindow? trainingDialog = null;
+                trainingDialog = new AxisTuningWindow(assignment.Filter, () => ApplyDialog(trainingDialog!, () =>
+                    context.CaptureSnapshot() == before ? ReviewTarget() : new(false, false, "The draft changed during review.")))
+                    { Owner = Window.GetWindow(owner) };
+                presenter(trainingDialog);
+                return;
+            }
+
+            var dialog = new AxisTuningWindow(assignment.Filter) { Owner = Window.GetWindow(owner) };
+            ApplyDialog(dialog, () =>
+            {
+                var ready = ReviewTarget();
+                if (!ready.Valid) return ready;
+                return dialog.ShowDialog() == true ? Ready() : new(false, false, "Axis tuning canceled.");
+            });
         }
+
+        internal DraftResult EditLabels(string target, Func<GameAssignmentReview> review, Action apply) =>
+            ExecuteNative(WorkspaceAssignmentAction.EditLabel, "", target, "", review, apply);
+
+        protected override WorkspaceAssignmentContext ReadAssignmentContext(IGameWorkspaceContext context) => assignmentContext();
+        protected override WorkspaceAssignmentActionSupport ReadNativeSupport(WorkspaceAssignmentAction action) =>
+            new(action is WorkspaceAssignmentAction.Apply or WorkspaceAssignmentAction.Clear or WorkspaceAssignmentAction.TuneAxis
+                or WorkspaceAssignmentAction.Undo or WorkspaceAssignmentAction.EditLabel or WorkspaceAssignmentAction.Inspect,
+                state.Context?.Draft is not null);
+        protected override void RefreshNativeEditor() => refreshActions();
+        protected override void ReportNativeResult(DraftResult result) => SelectedCallout.Text = result.Message;
+        private static GameAssignmentReview Ready() => new(true, true, "");
         #endregion END Public
     }
 }

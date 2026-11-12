@@ -175,7 +175,7 @@ namespace Heimdall.App.Games.Squadrons
                 {
                     session.ApplyControllerChange(change);
                     context.Services.ApplyPreferredDrawing(session, change.ResultDeviceId, context.Drawings);
-                });
+                }, WorkspaceAssignmentAction.Clear);
             if (result.Outcome != DraftOutcome.Applied) { editing().AssignmentFeedback(result); return; }
             refresh(false);
             if (change.ResultDeviceId is { } id)
