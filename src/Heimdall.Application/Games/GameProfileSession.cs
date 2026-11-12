@@ -44,9 +44,10 @@ namespace Heimdall.Application.Games
             _backend = backend; _validationDefinition = validationDefinition ?? backend.ValidationDefinition; _policy = policy; _referenceMatcher = referenceMatcher; _catalogIds = catalogIds; _observed = observed;
             _controllerInputs = controllerInputs ?? (() => []);
             GameWorkspaceContract.Validate(workspace);
-            ValidateProfile(workspace.Profile);
+            var openingPayload = ValidateProfile(workspace.Profile);
             _current = GameWorkspaceContract.Clone(workspace);
             _saved = GameWorkspaceContract.Clone(workspace);
+            StoreReviewBaseline(openingPayload);
         }
         #region BEGIN Public
         /// <summary>Notifies the UI after successful state transitions.</summary>
@@ -55,7 +56,7 @@ namespace Heimdall.Application.Games
         public GameWorkspace Snapshot { get { SnapshotCopies++; return GameWorkspaceContract.Clone(_current); } }
         /// <summary>Gets how many defensive document copies this session supplied (performance work counter).</summary>
         public int SnapshotCopies { get; private set; }
-        /// <summary>Gets how many unchanged native comparison baselines were validated for draft review.</summary>
+        /// <summary>Gets how many extra native validations draft review needed to rebuild the comparison baseline.</summary>
         public int ReviewBaselineBuilds { get; private set; }
         /// <summary>Gets whether current authoring differs from the last saved state.</summary>
         public bool HasChanges => !ReferenceEquals(_currentValue, _savedValue) && !string.Equals(CurrentJson, SavedJson, StringComparison.Ordinal);
@@ -675,8 +676,16 @@ namespace Heimdall.Application.Games
 #if PERFORMANCE_TRACE
             using var performance = PerformanceTrace.Measure("assignment.review-baseline", _backend.GetType());
 #endif
-            var files = ValidateProfile(_current.Profile).Files.OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
-            _reviewBaseline = files; _reviewBaselineStamp = ContentStamp; ReviewBaselineBuilds++;
+            var files = StoreReviewBaseline(ValidateProfile(_current.Profile));
+            ReviewBaselineBuilds++;
+            return files;
+        }
+
+        private KeyValuePair<string, string>[] StoreReviewBaseline(SimProfileExportPlan payload)
+        {
+            var files = payload.Files.OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
+            _reviewBaseline = files;
+            _reviewBaselineStamp = ContentStamp;
             return files;
         }
         private void RequireNativeEdit(ISimNativeEdit edit)
