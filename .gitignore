@@ -441,3 +441,4 @@ owner-signing-key.pem
 /release/*
 !/release/*.md
 !/release/version.json
+/all-perf.cmd
