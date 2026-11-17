@@ -1,17 +1,17 @@
 using System.Text;
-using Heimdall.Application.Interfaces;
+using Heimdall.Application.Games;
 using Heimdall.Domain.MultiSim;
 
 namespace Heimdall.Squadrons
 {
     /// <summary>Builds an independent catalog from captured concepts without assuming a fixed number of binding slots.</summary>
-    internal sealed class SquadronsCommandCatalog(string context, SquadronsNativeDocument document) : ICommandCatalog
+    internal sealed class SquadronsCommandCatalog(string context, SquadronsNativeDocument document) : CommandCatalogBase
     {
         #region BEGIN Public
         /// <summary>Gets the owning adapter.</summary>
-        public string SimId => "star-wars-squadrons";
+        public override string SimId => "star-wars-squadrons";
         /// <summary>Gets independent commands, retaining unknown concepts under Other.</summary>
-        public IReadOnlyList<SimCommand> Commands
+        public override IReadOnlyList<SimCommand> Commands
         {
             get
             {
@@ -27,8 +27,6 @@ namespace Heimdall.Squadrons
                     }).ToArray();
             }
         }
-        /// <summary>Finds an exact scoped command.</summary>
-        public SimCommand? Find(string id) => Commands.FirstOrDefault(x => x.Id == id);
         #endregion END Public
         #region BEGIN private helpers
         private static string Category(string concept) => concept.Split('.')[0] switch
