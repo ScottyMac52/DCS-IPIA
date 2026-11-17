@@ -13,9 +13,10 @@ namespace Heimdall.Application.Interfaces
         /// <summary>Gets all commands in the catalog.</summary>
         IReadOnlyList<SimCommand> Commands { get; }
 
-        /// <summary>Finds a command by its internal identifier.</summary>
-        /// <param name="id">The command identifier.</param>
-        /// <returns>The command, or null if not found.</returns>
+        /// <summary>Finds a command by its exact, ordinal, case-sensitive internal identifier without trimming or alias matching.</summary>
+        /// <param name="id">The complete command identifier, including its native scope.</param>
+        /// <returns>The unique matching command, or null if not found.</returns>
+        /// <exception cref="InvalidOperationException">More than one command has the requested identifier.</exception>
         SimCommand? Find(string id);
 
         #endregion END Public
