@@ -114,11 +114,16 @@ namespace Heimdall.Rendering
             {
                 var scale = Math.Min((width - 72) / artwork.Width, (height - 44 - top) / artwork.Height);
                 var x = (width - artwork.Width * scale) / 2;
-                // Keep both rectangles and the paint explicit across the native image-drawing boundary.
-                var source = new SKRect(0, 0, artwork.Width, artwork.Height);
-                var destination = new SKRect(x, top, x + artwork.Width * scale, top + artwork.Height * scale);
-                using var artworkPaint = new SKPaint();
-                canvas.DrawImage(artwork, source, destination, new SKSamplingOptions(SKFilterMode.Linear), artworkPaint);
+                // Scale the canvas to avoid the native draw_image_rect crash on Windows with Skia m157.
+                var saveCount = canvas.Save();
+                try
+                {
+                    canvas.Translate(x, top);
+                    canvas.Scale(scale);
+                    using var artworkPaint = new SKPaint();
+                    canvas.DrawImage(artwork, 0, 0, new SKSamplingOptions(SKFilterMode.Linear), artworkPaint);
+                }
+                finally { canvas.RestoreToCount(saveCount); }
             }
             else
             {
