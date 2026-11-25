@@ -62,11 +62,7 @@ namespace Heimdall.Rendering
         private static SKImage DecodeArtwork(byte[]? artwork)
         {
             if (artwork is null) throw new InvalidDataException("Choose a visible drawing or use the assignment-table layout.");
-            // Give PDF and preview drawing owned raster pixels instead of a lazily decoded encoded image.
-            using var data = SKData.CreateCopy(artwork);
-            using var codec = SKCodec.Create(data) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
-            using var bitmap = SKBitmap.Decode(codec) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
-            return SKImage.FromBitmap(bitmap) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
+            return RasterImageDecoder.Decode(artwork, "The reference artwork could not be decoded.");
         }
         private static (string Left, string Right)[] TableLines(ReferenceSheetContent content, SKFont font, float width)
         {
