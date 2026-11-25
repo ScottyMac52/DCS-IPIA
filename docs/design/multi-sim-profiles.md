@@ -218,3 +218,27 @@ end-user Elite support:
 5. Close Elite, inspect its saved XML and restore the complete backup if needed.
    Do not interpret inherited Warthog references as evidence those devices are
    currently connected. No in-game result is claimed by automated fixture tests.
+
+## Shared command catalog lookup
+
+All four native catalogs derive from `Heimdall.Application.Games.CommandCatalogBase`.
+The base owns the nonvirtual `ICommandCatalog.Find` implementation: compare the
+complete identifier using ordinal, case-sensitive equality, return `null` when
+missing, and throw `InvalidOperationException` for multiple matching commands.
+Lookup does not trim, normalize, match aliases or cross native contexts. Duplicate
+IDs unrelated to the requested ID do not prevent lookup of a unique command.
+
+Each adapter still owns native command generation, ordering, metadata and
+mutable-copy isolation. The base does not cache or retain mutable commands. DCS
+retains its existing first-occurrence deduplication, Squadrons retains concept
+deduplication, War Thunder retains section/command grouping, and Elite retains
+its native reader's duplicate-command rejection. Thus valid imported catalogs
+keep their existing command sets; the shared lookup rejects ambiguity rather
+than silently choosing a command if duplicate IDs ever reach it. Optional backend
+capabilities and native import/export pipelines are unchanged.
+
+`CommandCatalogContractTests` covers exact lookup, missing and ambiguous IDs,
+then exercises all four real backends with native fixtures. It checks every
+command lookup, independent command/metadata objects, caller mutation isolation
+and unchanged native exports. Run this suite and the existing independent
+80/80 coverage and CRAP <= 50 gates before merge.
