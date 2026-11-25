@@ -68,7 +68,12 @@ namespace Heimdall.Tests
             Assert.True(native.Succeeded);
             Assert.Null(catalog.Find("missing-catalog-command"));
             Assert.Null(catalog.Find(" " + id));
-            Assert.Null(catalog.Find(id.Equals(id, StringComparison.OrdinalIgnoreCase) ? id.ToLowerInvariant() : id.ToUpperInvariant()));
+            // Fixture identifiers contain lowercase scope text; verify the negative lookup really changes the ID.
+            var differentCaseId = id.ToUpperInvariant();
+            Assert.NotEqual(id, differentCaseId);
+            var differentCaseMatch = catalog.Find(differentCaseId);
+            Assert.True(differentCaseMatch is null,
+                $"Ordinal lookup for '{differentCaseId}' unexpectedly matched '{differentCaseMatch?.Id}' (original '{id}').");
             var found = catalog.Find(id)!;
             Assert.NotSame(first, found);
             Assert.NotSame(first.Metadata, found.Metadata);
