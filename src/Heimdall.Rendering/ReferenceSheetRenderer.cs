@@ -59,8 +59,13 @@ namespace Heimdall.Rendering
                 throw new InvalidDataException("Invalid or excessive reference-sheet content.");
         }
         private static bool Invalid(string text) => string.IsNullOrWhiteSpace(text) || text.Length > 4096;
-        private static SKImage DecodeArtwork(byte[]? artwork) => artwork is null ? throw new InvalidDataException("Choose a visible drawing or use the assignment-table layout.")
-            : SKImage.FromEncodedData(artwork) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
+        private static SKImage DecodeArtwork(byte[]? artwork)
+        {
+            if (artwork is null) throw new InvalidDataException("Choose a visible drawing or use the assignment-table layout.");
+            // Give PDF and preview drawing owned raster pixels instead of a lazily decoded encoded image.
+            using var bitmap = SKBitmap.Decode(artwork) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
+            return SKImage.FromBitmap(bitmap) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
+        }
         private static (string Left, string Right)[] TableLines(ReferenceSheetContent content, SKFont font, float width)
         {
             var lines = new List<(string Left, string Right)>();
@@ -114,16 +119,7 @@ namespace Heimdall.Rendering
             {
                 var scale = Math.Min((width - 72) / artwork.Width, (height - 44 - top) / artwork.Height);
                 var x = (width - artwork.Width * scale) / 2;
-                // Scale the canvas to avoid the native draw_image_rect crash on Windows with Skia m157.
-                var saveCount = canvas.Save();
-                try
-                {
-                    canvas.Translate(x, top);
-                    canvas.Scale(scale);
-                    using var artworkPaint = new SKPaint();
-                    canvas.DrawImage(artwork, 0, 0, new SKSamplingOptions(SKFilterMode.Linear), artworkPaint);
-                }
-                finally { canvas.RestoreToCount(saveCount); }
+                canvas.DrawImage(artwork, new SKRect(x, top, x + artwork.Width * scale, top + artwork.Height * scale), new SKSamplingOptions(SKFilterMode.Linear));
             }
             else
             {
