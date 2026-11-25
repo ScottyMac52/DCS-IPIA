@@ -68,7 +68,7 @@ namespace Heimdall.Tests
             Assert.True(native.Succeeded);
             Assert.Null(catalog.Find("missing-catalog-command"));
             Assert.Null(catalog.Find(" " + id));
-            Assert.Null(catalog.Find(id == id.ToUpperInvariant() ? id.ToLowerInvariant() : id.ToUpperInvariant()));
+            Assert.Null(catalog.Find(id.Equals(id, StringComparison.OrdinalIgnoreCase) ? id.ToLowerInvariant() : id.ToUpperInvariant()));
             var found = catalog.Find(id)!;
             Assert.NotSame(first, found);
             Assert.NotSame(first.Metadata, found.Metadata);
@@ -88,7 +88,7 @@ namespace Heimdall.Tests
             var fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
             if (game == "dcs")
             {
-                ISimProfileBackend dcs = new DcsSimProfileBackend();
+                var dcs = new DcsSimProfileBackend();
                 var root = Path.Combine(fixtures, "F4U", "src");
                 var sources = Directory.GetFiles(root, "*.lua", SearchOption.AllDirectories)
                     .ToDictionary(path => Path.GetRelativePath(root, path).Replace('\\', '/'), File.ReadAllText);
