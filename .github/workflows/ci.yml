@@ -44,6 +44,18 @@ jobs:
       - name: Build Visual Studio solution
         id: solution_build
         run: dotnet build HEIMDALL.sln --configuration Release
+      - name: Exercise native image crash regressions individually
+        shell: pwsh
+        run: |
+          $cases = @(
+            'Heimdall.Tests.DrawioMappingTests.Rejects_oversized_truncated_and_unsupported_sources',
+            'Heimdall.Tests.EliteSystemInputDrawingTests.System_artwork_uses_exact_inputs_and_visible_command_labels'
+          )
+          foreach ($case in $cases) {
+            Write-Output "Running native image regression: $case"
+            dotnet test tests/Heimdall.Tests/Heimdall.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~$case" --blame --logger "console;verbosity=detailed" --results-directory "${{ runner.temp }}/windows-test-results"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Build performance smoke with Profile instrumentation
         run: dotnet build tests/Heimdall.App.Smoke/Heimdall.App.Smoke.csproj --configuration Profile
       - name: Test setup folder defaults and appsettings persistence
