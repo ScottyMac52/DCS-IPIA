@@ -59,8 +59,11 @@ namespace Heimdall.Rendering
                 throw new InvalidDataException("Invalid or excessive reference-sheet content.");
         }
         private static bool Invalid(string text) => string.IsNullOrWhiteSpace(text) || text.Length > 4096;
-        private static SKImage DecodeArtwork(byte[]? artwork) => artwork is null ? throw new InvalidDataException("Choose a visible drawing or use the assignment-table layout.")
-            : SKImage.FromEncodedData(artwork) ?? throw new InvalidDataException("The reference artwork could not be decoded.");
+        private static SKImage DecodeArtwork(byte[]? artwork)
+        {
+            if (artwork is null) throw new InvalidDataException("Choose a visible drawing or use the assignment-table layout.");
+            return RasterImageDecoder.Decode(artwork, "The reference artwork could not be decoded.");
+        }
         private static (string Left, string Right)[] TableLines(ReferenceSheetContent content, SKFont font, float width)
         {
             var lines = new List<(string Left, string Right)>();
