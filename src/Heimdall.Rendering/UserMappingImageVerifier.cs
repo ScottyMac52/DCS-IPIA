@@ -16,7 +16,7 @@ namespace Heimdall.Rendering
             {
                 var reference = image.Attribute("href")!.Value;
                 var bytes = Convert.FromBase64String(reference[(reference.IndexOf(',', StringComparison.Ordinal) + 1)..]);
-                using var image = RasterImageDecoder.Decode(bytes, "Custom raster image cannot be decoded or its pixels are malformed.");
+                using var decoded = RasterImageDecoder.Decode(bytes, "Custom raster image cannot be decoded or its pixels are malformed.");
             }
         }
         #endregion END Public
