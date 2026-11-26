@@ -48,6 +48,7 @@ jobs:
         shell: pwsh
         run: |
           $cases = @(
+            'Heimdall.Tests.DrawioMappingTests.Valid_jpeg_pixels_survive_verification',
             'Heimdall.Tests.DrawioMappingTests.Rejects_oversized_truncated_and_unsupported_sources',
             'Heimdall.Tests.EliteSystemInputDrawingTests.System_artwork_uses_exact_inputs_and_visible_command_labels'
           )
