@@ -1,6 +1,5 @@
 using System.Xml.Linq;
 using Heimdall.Application;
-using SkiaSharp;
 
 namespace Heimdall.Rendering
 {
@@ -17,9 +16,7 @@ namespace Heimdall.Rendering
             {
                 var reference = image.Attribute("href")!.Value;
                 var bytes = Convert.FromBase64String(reference[(reference.IndexOf(',', StringComparison.Ordinal) + 1)..]);
-                using var stream = new MemoryStream(bytes);
-                using var codec = SKCodec.Create(stream) ?? throw new InvalidDataException("Custom raster image cannot be decoded.");
-                using var bitmap = SKBitmap.Decode(codec) ?? throw new InvalidDataException("Custom raster pixels are malformed.");
+                using var decoded = RasterImageDecoder.Decode(bytes, "Custom raster image cannot be decoded or its pixels are malformed.");
             }
         }
         #endregion END Public

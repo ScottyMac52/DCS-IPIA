@@ -45,6 +45,9 @@ namespace Heimdall.Tests
             using var png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
             var art = ReferenceSheetRenderer.Render(Content(), new(Artwork: true), png.ToArray());
             Assert.Equal(2, art.PageCount);
+            using var preview = SKBitmap.Decode(art.PngPages[0]);
+            Assert.Contains(preview.Pixels, color => color == SKColors.Blue);
+            Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(art.Pdf));
             Assert.Equal(1, ReferenceSheetRenderer.Render(Content(), new()).PageCount);
             Assert.Throws<InvalidDataException>(() => ReferenceSheetRenderer.Render(Content(), new(Artwork: true)));
             Assert.Throws<InvalidDataException>(() => ReferenceSheetRenderer.Render(Content(), new(Artwork: true), [1, 2, 3]));

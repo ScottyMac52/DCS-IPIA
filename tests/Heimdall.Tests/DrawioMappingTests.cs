@@ -103,14 +103,21 @@ namespace Heimdall.Tests
             Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(DrawioMappingFixture.Source("C:/outside.png"), definition, "bad.drawio", "1.0"));
             Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(DrawioMappingFixture.Source("missing.png"), definition, "bad.drawio", "1.0"));
             Assert.Throws<InvalidDataException>(() => RasterImageContract.Validate(new byte[30], "png"));
-            var jpeg = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/jpeg;base64," + Convert.ToBase64String(DrawioMappingFixture.Jpeg)), definition, "jpeg.drawio", "1.0");
-            UserMappingImageVerifier.Validate(jpeg);
             var malformed = new byte[32];
             malformed[0] = malformed[2] = malformed[^2] = 255;
             malformed[1] = 216; malformed[3] = 192; malformed[5] = 8; malformed[6] = 8;
             malformed[8] = malformed[10] = 1; malformed[^1] = 217;
-            var invalidPixels = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/jpeg;base64," + Convert.ToBase64String(malformed)), definition, "bad.drawio", "1.0");
-            Assert.Throws<InvalidDataException>(() => UserMappingImageVerifier.Validate(invalidPixels));
+            Assert.Throws<InvalidDataException>(() => DrawioMappingImporter.Import(
+                DrawioMappingFixture.Source("data:image/jpeg;base64," + Convert.ToBase64String(malformed)), definition, "bad.drawio", "1.0"));
+        }
+
+        /// <summary>Valid captured JPEG pixels decode through the same native verification boundary used before publication.</summary>
+        [Fact]
+        public void Valid_jpeg_pixels_survive_verification()
+        {
+            var revision = DrawioMappingImporter.Import(DrawioMappingFixture.Source("data:image/jpeg;base64," +
+                Convert.ToBase64String(DrawioMappingFixture.Jpeg)), GenericHardwareFixture.Definition(), "jpeg.drawio", "1.0");
+            UserMappingImageVerifier.Validate(revision);
         }
 
         /// <summary>Embedded and explicitly captured local images render identically and survive source deletion.</summary>

@@ -39,6 +39,9 @@ namespace Heimdall.Application
                 if (marker is 192 or 193 or 194)
                 {
                     if (length < 8) throw new InvalidDataException("Invalid JPEG frame.");
+                    var components = bytes[offset + 7];
+                    if (components == 0 || length != 8 + 3 * components)
+                        throw new InvalidDataException("Invalid JPEG frame component table.");
                     return Dimensions(BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(offset + 5, 2)),
                         BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(offset + 3, 2)));
                 }

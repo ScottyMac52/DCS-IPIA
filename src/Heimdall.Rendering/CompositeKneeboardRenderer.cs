@@ -28,8 +28,7 @@ namespace Heimdall.Rendering
             var device = CanonicalSvgRenderer.RenderCompleteScaled(
                 PreviewArtwork.Prepare(GraphicWithoutDynamicText(diagram.DrawingUnlinked ? EmptyDrawing(diagram) : diagram.Svg), artworkOpacity), diagram.Width, diagram.Height,
                 Math.Min(2, (int)Math.Floor(4096 / Math.Max(diagram.Width, diagram.Height))));
-            using var deviceImage = SKImage.FromEncodedData(device) ??
-                                    throw new InvalidDataException("Could not decode the authored device image.");
+            using var deviceImage = RasterImageDecoder.Decode(device, "Could not decode the authored device image.");
             using var surface = SKSurface.Create(new SKImageInfo(1200, 1600)) ??
                                 throw new InvalidDataException("Could not allocate kneeboard surface.");
             var canvas = surface.Canvas;
